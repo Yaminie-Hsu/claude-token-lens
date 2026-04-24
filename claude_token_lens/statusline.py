@@ -13,7 +13,7 @@ import sys
 import time
 from pathlib import Path
 
-_ROOT = Path(__file__).parent
+_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(_ROOT))
 
 from claude_token_lens.tracker import get_session_stats, upsert_session_cost

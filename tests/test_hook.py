@@ -5,7 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-HOOK = Path(__file__).parent.parent / "hooks" / "user_prompt_submit.py"
+HOOK = Path(__file__).parent.parent / "claude_token_lens" / "hooks" / "user_prompt_submit.py"
 
 
 def _run_hook(event: dict) -> tuple[dict, str]:

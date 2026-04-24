@@ -24,7 +24,7 @@ import sys
 from pathlib import Path
 
 # Allow running the hook directly without installing the package
-_ROOT = Path(__file__).parent.parent
+_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(_ROOT))
 
 from claude_token_lens.advisor import build_report

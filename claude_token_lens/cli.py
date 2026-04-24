@@ -187,6 +187,15 @@ def _cmd_setup(args: list[str]) -> None:
     else:
         print(f"✓ PreToolUse hook already registered")
 
+    # statusLine script
+    statusline_path = Path(__file__).parent / "statusline.py"
+    statusline_cmd = f"python3 {statusline_path}"
+    if settings.get("statusLine") != statusline_cmd:
+        settings["statusLine"] = statusline_cmd
+        print(f"✓ Registered statusLine script")
+    else:
+        print(f"✓ statusLine already registered")
+
     with open(settings_path, "w") as f:
         json.dump(settings, f, indent=2)
         f.write("\n")

@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "claude-token-lens"
@@ -26,7 +26,7 @@ dependencies = [
 dev = ["pytest>=7", "pytest-cov"]
 
 [project.scripts]
-token-lens = "cli:main"
+token-lens = "claude_token_lens.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
