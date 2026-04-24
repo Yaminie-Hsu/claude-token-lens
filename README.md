@@ -1,5 +1,7 @@
 # claude-token-lens
 
+[English](./README.md) | [中文](./README_CN.md)
+
 > Token monitoring and smart compression for Claude Code — optimized for coding sessions.
 
 `claude-token-lens` installs as a pair of [Claude Code hooks](https://code.claude.com/docs/en/hooks) that silently compress your prompts before they reach the API, and filter verbose tool output before Claude processes it. It also provides a CLI for session statistics and configuration.
