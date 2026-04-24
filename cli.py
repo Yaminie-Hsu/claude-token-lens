@@ -3,10 +3,13 @@
 token-lens CLI
 
 Commands:
-  token-lens stats          Show token savings statistics
-  token-lens compress       Compress text from stdin and print result
-  token-lens setup          Install hooks into Claude Code settings.json
-  token-lens config         Show / edit current configuration
+  token-lens stats              Show token savings statistics
+  token-lens compress           Compress text from stdin and print result
+  token-lens setup              Install hooks into Claude Code settings.json
+  token-lens config             Show / edit current configuration
+  token-lens preprocess <file>  Clean a document and output plain text with page markers
+  token-lens outline <file>     Show document structure (TOC + page numbers + token counts)
+  token-lens timeline <files…>  Build a chronological event timeline across documents
 """
 
 from __future__ import annotations
@@ -148,28 +151,110 @@ def _cmd_config(args: list[str]) -> None:
         print(f.read())
 
 
+def _cmd_preprocess(args: list[str]) -> None:
+    if not args:
+        print("用法: token-lens preprocess <文件路径> [--keep-headers]", file=sys.stderr)
+        sys.exit(1)
+    from claude_token_lens.docs.extractor import extract_text
+    from claude_token_lens.docs.cleaner import clean_document
+    from claude_token_lens.estimator import count_tokens, format_tokens
+
+    path = args[0]
+    keep_headers = "--keep-headers" in args
+
+    print(f"正在提取: {path}", file=sys.stderr)
+    text = extract_text(path)
+    original_tokens = count_tokens(text)
+
+    if keep_headers:
+        result_text = text
+        removed = []
+    else:
+        result = clean_document(text)
+        result_text = result.text
+        removed = result.removed_patterns
+
+    final_tokens = count_tokens(result_text)
+
+    print(result_text)
+
+    print(f"\n[token-lens] 提取完成: {format_tokens(original_tokens)} tokens", file=sys.stderr)
+    if removed:
+        print(f"[token-lens] 已去除重复页眉/页脚 {len(removed)} 种，"
+              f"节省 {format_tokens(original_tokens - final_tokens)} tokens", file=sys.stderr)
+        for r in removed[:5]:
+            print(f"[token-lens]   · {r[:60]}", file=sys.stderr)
+
+
+def _cmd_outline(args: list[str]) -> None:
+    if not args:
+        print("用法: token-lens outline <文件路径>", file=sys.stderr)
+        sys.exit(1)
+    from claude_token_lens.docs.extractor import extract_text
+    from claude_token_lens.docs.cleaner import clean_document
+    from claude_token_lens.docs.summarizer import summarize
+
+    path = args[0]
+    text = extract_text(path)
+    cleaned = clean_document(text).text
+    summary = summarize(cleaned)
+    print(summary.to_markdown())
+
+
+def _cmd_timeline(args: list[str]) -> None:
+    if not args:
+        print("用法: token-lens timeline <文件1> [文件2] ...", file=sys.stderr)
+        sys.exit(1)
+    from claude_token_lens.docs.extractor import extract_text
+    from claude_token_lens.docs.cleaner import clean_document
+    from claude_token_lens.docs.timeline import build_timeline
+
+    documents: list[tuple[str, str]] = []
+    for path in args:
+        if path.startswith("--"):
+            continue
+        print(f"正在处理: {path}", file=sys.stderr)
+        text = extract_text(path)
+        cleaned = clean_document(text).text
+        documents.append((path, cleaned))
+
+    if not documents:
+        print("未找到可处理的文件。", file=sys.stderr)
+        sys.exit(1)
+
+    print(build_timeline(documents))
+
+
 COMMANDS = {
-    "stats":    _cmd_stats,
-    "compress": _cmd_compress,
-    "setup":    _cmd_setup,
-    "config":   _cmd_config,
+    "stats":      _cmd_stats,
+    "compress":   _cmd_compress,
+    "setup":      _cmd_setup,
+    "config":     _cmd_config,
+    "preprocess": _cmd_preprocess,
+    "outline":    _cmd_outline,
+    "timeline":   _cmd_timeline,
 }
 
 HELP = """\
 Usage: token-lens <command> [options]
 
-Commands:
-  stats [days]    Token savings report (default: last 30 days)
-  compress        Compress stdin prompt, print result to stdout
-    --strip-comments   Also remove single-line code comments
-  setup           Install hooks into ~/.claude/settings.json
-  config          Show / create config file
+── Prompt compression ──────────────────────────────────────────
+  stats [days]          Token savings report (default: last 30 days)
+  compress              Compress stdin prompt, print result to stdout
+    --strip-comments    Also remove single-line code comments
+  setup                 Install hooks into ~/.claude/settings.json
+  config                Show / create config file
+
+── Document processing ─────────────────────────────────────────
+  preprocess <file>     Clean document, output plain text with [第N页] markers
+    --keep-headers      Skip header/footer removal
+  outline <file>        Show document structure: TOC + page numbers + token counts
+  timeline <files…>     Chronological event timeline across one or more documents
 
 Examples:
-  token-lens stats
-  token-lens stats 7
-  echo "my prompt" | token-lens compress
-  token-lens setup
+  token-lens preprocess contract.pdf > contract_clean.txt
+  token-lens outline contract.pdf
+  token-lens timeline contract.pdf emails.pdf notice.pdf
 """
 
 
