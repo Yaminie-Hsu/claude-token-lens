@@ -20,9 +20,47 @@ from pathlib import Path
 
 
 def _cmd_stats(args: list[str]) -> None:
-    from claude_token_lens.tracker import get_recent_events, get_stats
+    from claude_token_lens.tracker import (
+        get_recent_events, get_stats,
+        get_latest_session_id, get_session_stats,
+    )
     from claude_token_lens.estimator import format_tokens, estimate_cost_usd
 
+    # `stats session` — show current (most recent) session only
+    if args and args[0] == "session":
+        sid = get_latest_session_id()
+        if not sid:
+            print("\n  No session data recorded yet.\n")
+            return
+        stats = get_session_stats(sid)
+        short_sid = sid[:8] + "…" if len(sid) > 8 else sid
+        started = stats["started_at"][:19].replace("T", " ") if stats["started_at"] else "—"
+        total_saved = stats["total_saved"]
+        cost_saved = estimate_cost_usd(total_saved)
+
+        print(f"\n── token-lens  current session ──────────────────")
+        print(f"  Session ID         : {short_sid}  (started {started})")
+        print(f"  Prompts sent       : {stats['total_events']}")
+        print(f"  Tokens submitted   : {format_tokens(stats['total_original'])}")
+        print(f"  Tokens after lens  : {format_tokens(stats['total_compressed'])}")
+        print(f"  Tokens saved       : {format_tokens(total_saved)}  (avg {stats['avg_pct_saved']:.1f}% per prompt)")
+        print(f"  Est. cost saved    : ${cost_saved:.4f}  (Sonnet output rate)")
+        print()
+
+        recent = get_recent_events(limit=10)
+        session_events = [r for r in recent if r["session_id"] == sid]
+        if session_events:
+            print(f"  {'Time':19}  {'Before':>7}  {'After':>7}  {'Saved':>7}  Strategies")
+            print(f"  {'─'*19}  {'─'*7}  {'─'*7}  {'─'*7}  {'─'*20}")
+            for row in session_events:
+                ts = row["ts"][:19].replace("T", " ")
+                strat = row["strategies"] or "—"
+                print(f"  {ts}  {row['original_tokens']:>7}  "
+                      f"{row['compressed_tokens']:>7}  {row['saved_tokens']:>7}  {strat}")
+        print()
+        return
+
+    # default: 30-day (or custom) aggregate
     days = int(args[0]) if args else 30
     stats = get_stats(days=days)
 
@@ -32,7 +70,7 @@ def _cmd_stats(args: list[str]) -> None:
     cost_saved = estimate_cost_usd(total_saved)
 
     print(f"\n── token-lens stats (last {days} days) ──────────────────")
-    print(f"  Compression events : {stats['total_events']}")
+    print(f"  Prompts processed  : {stats['total_events']}")
     print(f"  Tokens submitted   : {format_tokens(total_original)}")
     print(f"  Tokens after lens  : {format_tokens(stats['total_compressed'])}")
     print(f"  Tokens saved       : {format_tokens(total_saved)}  (avg {avg_pct:.1f}% per prompt)")
@@ -41,9 +79,8 @@ def _cmd_stats(args: list[str]) -> None:
 
     recent = get_recent_events(limit=10)
     if recent:
-        print("  Recent events:")
-        print(f"  {'Time':20}  {'Before':>7}  {'After':>7}  {'Saved':>7}  Strategies")
-        print(f"  {'─'*20}  {'─'*7}  {'─'*7}  {'─'*7}  {'─'*20}")
+        print(f"  {'Time':19}  {'Before':>7}  {'After':>7}  {'Saved':>7}  Strategies")
+        print(f"  {'─'*19}  {'─'*7}  {'─'*7}  {'─'*7}  {'─'*20}")
         for row in recent:
             ts = row["ts"][:19].replace("T", " ")
             strat = row["strategies"] or "—"

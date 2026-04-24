@@ -97,6 +97,44 @@ def get_stats(days: int = 30) -> dict:
     }
 
 
+def get_latest_session_id() -> str | None:
+    """Return the session_id of the most recently recorded event."""
+    with _db() as conn:
+        row = conn.execute(
+            "SELECT session_id FROM events WHERE session_id != '' ORDER BY ts DESC LIMIT 1"
+        ).fetchone()
+    return row["session_id"] if row else None
+
+
+def get_session_stats(session_id: str) -> dict:
+    """Return aggregated statistics for a specific session."""
+    with _db() as conn:
+        row = conn.execute(
+            """SELECT
+                COUNT(*)                AS total_events,
+                SUM(original_tokens)    AS total_original,
+                SUM(compressed_tokens)  AS total_compressed,
+                SUM(saved_tokens)       AS total_saved,
+                AVG(CASE WHEN original_tokens > 0
+                    THEN CAST(saved_tokens AS REAL) / original_tokens
+                    ELSE 0 END) * 100   AS avg_pct_saved,
+                MIN(ts)                 AS started_at
+               FROM events
+               WHERE session_id = ?""",
+            (session_id,),
+        ).fetchone()
+
+    return {
+        "session_id": session_id,
+        "total_events": row["total_events"] or 0,
+        "total_original": row["total_original"] or 0,
+        "total_compressed": row["total_compressed"] or 0,
+        "total_saved": row["total_saved"] or 0,
+        "avg_pct_saved": row["avg_pct_saved"] or 0.0,
+        "started_at": row["started_at"] or "",
+    }
+
+
 def get_recent_events(limit: int = 20) -> List[sqlite3.Row]:
     with _db() as conn:
         return conn.execute(

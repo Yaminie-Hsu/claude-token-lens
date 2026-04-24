@@ -33,7 +33,8 @@ Claude Code already provides `/compact`, `/clear`, auto-compaction, and prompt c
 - **`PreToolUse` hook** — filters Bash tool output:
   - Test runners (`pytest`, `npm test`, `go test`, …) → failures only
   - Log/file reads → last N lines
-- **Session statistics** — `token-lens stats` shows cumulative savings
+- **Session statistics** — `token-lens stats` shows cumulative savings (last 30 days); `token-lens stats session` shows the current session
+- **Real-time status line** — embeds a live counter in Claude Code's status bar: `lens  12 prompts · 8.4k tok · saved 1.2k (14%)`
 - **Context window advisor** — warns when context hits 60 / 80 / 90% full, suggests `/compact` or `/clear`
 - **Zero config to start** — `token-lens setup` writes the hooks into `~/.claude/settings.json`
 - **Configurable** — tune thresholds, enable comment stripping, adjust frame counts
@@ -121,6 +122,22 @@ pytest tests/ -v
 
 Only failures surface in Claude's context. The exit code is preserved so Claude still knows whether tests passed.
 
+### Status line
+
+`token-lens setup` also registers a `statusLine` script in `~/.claude/settings.json`. After every Claude reply, the status bar updates with live session totals:
+
+```
+lens  12 prompts · 8.4k tok · saved 1.2k (14%)
+```
+
+When nothing has been saved yet (short prompts, no stack traces), the saved part is omitted:
+
+```
+lens  3 prompts · 0.9k tok
+```
+
+The counter resets with each new Claude Code session.
+
 ---
 
 ## CLI reference
@@ -129,6 +146,9 @@ Only failures surface in Claude's context. The exit code is preserved so Claude 
 # Show savings report for the last 30 days (or N days)
 token-lens stats
 token-lens stats 7
+
+# Show stats for the current session only
+token-lens stats session
 
 # Compress text from stdin, print result to stdout
 echo "my prompt" | token-lens compress

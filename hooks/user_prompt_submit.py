@@ -84,19 +84,19 @@ def main() -> None:
 
     result = compress_prompt(prompt, cfg)
 
-    # Only record and report if we saved a meaningful number of tokens
-    if result.saved >= cfg.report_threshold_tokens:
-        try:
-            record_event(
-                original_tokens=result.original_tokens,
-                compressed_tokens=result.compressed_tokens,
-                strategies=result.strategies_applied,
-                session_id=session_id,
-                cwd=cwd,
-            )
-        except Exception:
-            pass  # never block on tracking errors
+    # Always record every prompt so stats reflect real token throughput
+    try:
+        record_event(
+            original_tokens=result.original_tokens,
+            compressed_tokens=result.compressed_tokens,
+            strategies=result.strategies_applied,
+            session_id=session_id,
+            cwd=cwd,
+        )
+    except Exception:
+        pass  # never block on tracking errors
 
+    if result.saved >= cfg.report_threshold_tokens:
         # Cumulative session tokens for context-window advisories
         try:
             stats = get_stats(days=1)
