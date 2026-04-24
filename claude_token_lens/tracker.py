@@ -28,6 +28,13 @@ CREATE TABLE IF NOT EXISTS meta (
     key   TEXT PRIMARY KEY,
     value TEXT
 );
+
+CREATE TABLE IF NOT EXISTS session_costs (
+    session_id  TEXT PRIMARY KEY,
+    cost_usd    REAL NOT NULL DEFAULT 0.0,
+    first_seen  TEXT NOT NULL,
+    last_seen   TEXT NOT NULL
+);
 """
 
 
@@ -132,6 +139,37 @@ def get_session_stats(session_id: str) -> dict:
         "total_saved": row["total_saved"] or 0,
         "avg_pct_saved": row["avg_pct_saved"] or 0.0,
         "started_at": row["started_at"] or "",
+    }
+
+
+def upsert_session_cost(session_id: str, cost_usd: float) -> None:
+    """Record or update the cost for a session. Always keeps the highest seen value."""
+    now = datetime.utcnow().isoformat()
+    with _db() as conn:
+        conn.execute(
+            """INSERT INTO session_costs (session_id, cost_usd, first_seen, last_seen)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT(session_id) DO UPDATE SET
+                 cost_usd = MAX(cost_usd, excluded.cost_usd),
+                 last_seen = excluded.last_seen""",
+            (session_id, cost_usd, now, now),
+        )
+
+
+def get_monthly_cost(year: int, month: int) -> dict:
+    """Return total API-equivalent cost for all sessions that started in the given month."""
+    lo = f"{year:04d}-{month:02d}-01"
+    hi = f"{year+1:04d}-01-01" if month == 12 else f"{year:04d}-{month+1:02d}-01"
+    with _db() as conn:
+        row = conn.execute(
+            """SELECT COUNT(*) AS sessions, COALESCE(SUM(cost_usd), 0.0) AS total_cost
+               FROM session_costs
+               WHERE first_seen >= ? AND first_seen < ?""",
+            (lo, hi),
+        ).fetchone()
+    return {
+        "sessions": row["sessions"],
+        "total_cost": row["total_cost"],
     }
 
 

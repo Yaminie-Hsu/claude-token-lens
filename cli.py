@@ -23,8 +23,44 @@ def _cmd_stats(args: list[str]) -> None:
     from claude_token_lens.tracker import (
         get_recent_events, get_stats,
         get_latest_session_id, get_session_stats,
+        get_monthly_cost,
     )
     from claude_token_lens.estimator import format_tokens, estimate_cost_usd
+
+    # `stats month [YYYY-MM]` — show monthly API-equivalent cost vs Pro plan
+    if args and args[0] == "month":
+        from datetime import date
+        today = date.today()
+        if len(args) > 1:
+            try:
+                year, mon = map(int, args[1].split("-"))
+            except ValueError:
+                print("用法: token-lens stats month [YYYY-MM]", file=sys.stderr)
+                sys.exit(1)
+        else:
+            year, mon = today.year, today.month
+
+        month_label = date(year, mon, 1).strftime("%B %Y")
+        data = get_monthly_cost(year, mon)
+        total = data["total_cost"]
+        sessions = data["sessions"]
+        pro_plan = 20.00
+        delta = total - pro_plan
+        if delta >= 0:
+            verdict = f"+${delta:.2f}  (Pro 划算，等效省了这么多)"
+        else:
+            verdict = f"-${abs(delta):.2f}  (用量不足以回本 Pro 月费)"
+
+        print(f"\n── token-lens  monthly cost ({month_label}) ─────────────────")
+        print(f"  Sessions recorded  : {sessions}")
+        print(f"  API-equivalent cost: ${total:.4f}")
+        print(f"  Claude Pro plan    : ${pro_plan:.2f}/month")
+        print(f"  ─────────────────────────────────────────────────────")
+        print(f"  Net value          : {verdict}")
+        if sessions == 0:
+            print(f"\n  (statusline 每次刷新时自动记录，需有会话数据才能统计)")
+        print()
+        return
 
     # `stats session` — show current (most recent) session only
     if args and args[0] == "session":
@@ -277,6 +313,7 @@ Usage: token-lens <command> [options]
 
 ── Prompt compression ──────────────────────────────────────────
   stats [days]          Token savings report (default: last 30 days)
+  stats month [YYYY-MM] Monthly API cost vs Claude Pro plan ($20/mo)
   compress              Compress stdin prompt, print result to stdout
     --strip-comments    Also remove single-line code comments
   setup                 Install hooks into ~/.claude/settings.json

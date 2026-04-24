@@ -16,7 +16,7 @@ from pathlib import Path
 _ROOT = Path(__file__).parent
 sys.path.insert(0, str(_ROOT))
 
-from claude_token_lens.tracker import get_session_stats
+from claude_token_lens.tracker import get_session_stats, upsert_session_cost
 
 
 def main() -> None:
@@ -46,6 +46,13 @@ def main() -> None:
         resets_str = f"· Resets in {h}hr {m}min" if h else f"· Resets in {m}min"
     else:
         resets_str = ""
+
+    # Persist session cost for monthly tracking
+    if session_id and cost_usd > 0:
+        try:
+            upsert_session_cost(session_id, cost_usd)
+        except Exception:
+            pass
 
     # Read compression savings from DB
     try:
