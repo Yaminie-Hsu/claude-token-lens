@@ -6,3 +6,6 @@ build/
 .pytest_cache/
 *.db
 .DS_Store
+
+# 私人笔记，不上传 GitHub
+notes/
