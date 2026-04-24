@@ -265,10 +265,25 @@ token-lens timeline contract.pdf emails.pdf notice.pdf
 
 ---
 
+## 兼容性说明
+
+Hook 功能（`UserPromptSubmit` 和 `PreToolUse`）依赖本地 shell 环境执行。文档处理命令（`preprocess`、`outline`、`timeline`）是独立的 Python CLI 工具，与 Claude Code 无关，任何终端均可使用。
+
+| 运行环境 | Hook 自动压缩 | 文档 CLI |
+|---------|-------------|---------|
+| Claude Code CLI（终端 `claude`） | ✅ 完全支持 | ✅ |
+| Claude Code Desktop App（桌面客户端） | ✅ 同一引擎，读同一 `settings.json` | ✅ |
+| VS Code / JetBrains 插件 | ✅ 底层仍是 Claude Code 引擎 | ✅ |
+| claude.ai/code（网页版） | ❌ 浏览器环境，无法执行本地命令 | ✅ 在终端单独运行 |
+
+> 如果你使用 Desktop App 或 IDE 插件，安装后发一条带长报错的消息，看终端是否出现 `[token-lens]` 输出，即可确认 hooks 是否生效。
+
+---
+
 ## 环境要求
 
 - Python 3.9+
-- Claude Code（任何支持 hooks 的版本）
+- Claude Code CLI（任何支持 hooks 的版本）
 - `tiktoken`（自动安装；不可用时退化为字符数估算）
 - `pypdf`（文档功能需要，`pip install pypdf`）
 - `python-docx`（Word 文档支持，`pip install python-docx`）

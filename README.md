@@ -197,10 +197,25 @@ To enable comment stripping (biggest savings for comment-heavy code):
 
 ---
 
+## Compatibility
+
+The hook-based features (`UserPromptSubmit` and `PreToolUse`) require a local shell environment to execute. The document CLI commands (`preprocess`, `outline`, `timeline`) work independently of Claude Code in any terminal.
+
+| Environment | Hooks | Document CLI |
+|-------------|-------|-------------|
+| Claude Code CLI (`claude` in terminal) | ✅ Full support | ✅ |
+| Claude Code Desktop App (Mac / Windows) | ✅ Same engine, same `settings.json` | ✅ |
+| VS Code / JetBrains extension | ✅ Backed by Claude Code engine | ✅ |
+| claude.ai/code (web) | ❌ No local shell access | ✅ Run separately in terminal |
+
+> If you use the Desktop App or an IDE extension, send a prompt with a long stack trace after setup and check your terminal for a `[token-lens]` line to confirm hooks are active.
+
+---
+
 ## Requirements
 
 - Python 3.9+
-- Claude Code (any version with hooks support)
+- Claude Code CLI (any version with hooks support)
 - `tiktoken` (installed automatically; falls back to character-based estimation if unavailable)
 
 ---
