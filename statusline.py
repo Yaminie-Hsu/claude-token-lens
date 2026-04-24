@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 from pathlib import Path
 
 _ROOT = Path(__file__).parent
@@ -28,30 +29,56 @@ def main() -> None:
     if not session_id:
         return
 
+    # Read token counts and cost directly from the session JSON
+    ctx = data.get("context_window", {})
+    in_tok = ctx.get("total_input_tokens", 0)
+    out_tok = ctx.get("total_output_tokens", 0)
+    used_pct = ctx.get("used_percentage", 0)
+    cost_usd = data.get("cost", {}).get("total_cost_usd", 0.0)
+
+    # Rate limit (5-hour window)
+    five_hour = data.get("rate_limits", {}).get("five_hour", {})
+    usage_pct = five_hour.get("used_percentage", 0)
+    resets_at = five_hour.get("resets_at", 0)
+    if resets_at:
+        remaining = max(0, int(resets_at - time.time()))
+        h, m = divmod(remaining // 60, 60)
+        resets_str = f"· Resets in {h}hr {m}min" if h else f"· Resets in {m}min"
+    else:
+        resets_str = ""
+
+    # Read compression savings from DB
     try:
         stats = get_session_stats(session_id)
+        saved = stats["total_saved"]
+        saved_pct = stats["avg_pct_saved"]
     except Exception:
-        return
+        saved = 0
+        saved_pct = 0.0
 
-    n = stats["total_events"]
-    original = stats["total_original"]
-    saved = stats["total_saved"]
-    pct = stats["avg_pct_saved"]
-
-    if n == 0:
-        print("lens: no prompts yet")
-        return
-
-    # Compact token formatter
     def fmt(t: int) -> str:
         return f"{t/1000:.1f}k" if t >= 1000 else str(t)
 
-    if saved > 0:
-        line = f"lens  {n} prompts · {fmt(original)} tok · saved {fmt(saved)} ({pct:.0f}%)"
+    if used_pct >= 80:
+        ctx_str = f"\033[31mctx {used_pct}% · /compact or /clear\033[0m"  # red (ctx part only)
+    elif used_pct >= 50:
+        ctx_str = f"\033[33mctx {used_pct}%\033[0m"   # yellow
     else:
-        line = f"lens  {n} prompts · {fmt(original)} tok"
+        ctx_str = f"ctx {used_pct}%"
 
-    print(line)
+    usage_str = f"usage {usage_pct}% {resets_str}".strip() if usage_pct else ""
+
+    parts = [
+        f"lens  {fmt(in_tok)}↑ {fmt(out_tok)}↓",
+        ctx_str,
+    ]
+    if usage_str:
+        parts.append(usage_str)
+    parts.append(f"${cost_usd:.4f}")
+    if saved > 0:
+        parts.append(f"saved {fmt(saved)} ({saved_pct:.0f}%)")
+
+    print(" · ".join(parts))
 
 
 if __name__ == "__main__":

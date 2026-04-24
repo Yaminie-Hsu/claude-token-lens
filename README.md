@@ -2,7 +2,7 @@
 
 [English](./README.md) | [中文](./README_CN.md)
 
-> Token monitoring and smart compression for Claude Code — optimized for coding sessions.
+> Keep your Claude Code context window alive longer — monitor usage, compress inputs, and make every session go further.
 
 `claude-token-lens` installs as a pair of [Claude Code hooks](https://code.claude.com/docs/en/hooks) that silently compress your prompts before they reach the API, and filter verbose tool output before Claude processes it. It also provides a CLI for session statistics and configuration.
 
@@ -12,7 +12,9 @@
 
 ## Why
 
-Coding sessions burn tokens fast. The three biggest culprits:
+The real cost of wasted tokens isn't money — it's **context window lifespan**. Every bloated prompt pushes earlier conversation history out of the window sooner, forcing you to `/compact` or `/clear` more often and losing hard-won context.
+
+Coding sessions are especially wasteful. The three biggest culprits:
 
 | Source | Example waste |
 |--------|--------------|
@@ -20,7 +22,7 @@ Coding sessions burn tokens fast. The three biggest culprits:
 | Pasted code | Comment-heavy files, excessive blank lines |
 | Test/log output | 10,000-line log file when you only care about `ERROR` lines |
 
-Claude Code already provides `/compact`, `/clear`, auto-compaction, and prompt caching. `claude-token-lens` handles the part that happens *before* the prompt is submitted — so those official tools have less to work with in the first place.
+Claude Code already provides `/compact`, `/clear`, auto-compaction, and prompt caching. `claude-token-lens` handles the part that happens *before* the prompt is submitted — so those official tools have less to work with in the first place. Less input pressure → fewer forced compactions → longer sessions before you lose context.
 
 ---
 
@@ -34,8 +36,8 @@ Claude Code already provides `/compact`, `/clear`, auto-compaction, and prompt c
   - Test runners (`pytest`, `npm test`, `go test`, …) → failures only
   - Log/file reads → last N lines
 - **Session statistics** — `token-lens stats` shows cumulative savings (last 30 days); `token-lens stats session` shows the current session
-- **Real-time status line** — embeds a live counter in Claude Code's status bar: `lens  12 prompts · 8.4k tok · saved 1.2k (14%)`
-- **Context window advisor** — warns when context hits 60 / 80 / 90% full, suggests `/compact` or `/clear`
+- **Real-time status line** — embeds a live counter in Claude Code's status bar: `lens  8.4k↑ 2.1k↓ · ctx 15% · usage 20% · Resets in 3hr 23min · $0.0535 · saved 1.2k (14%)`
+- **Context window indicator** — status line turns yellow at 50% and red at 80% with a `/compact or /clear` prompt
 - **Zero config to start** — `token-lens setup` writes the hooks into `~/.claude/settings.json`
 - **Configurable** — tune thresholds, enable comment stripping, adjust frame counts
 
@@ -127,13 +129,20 @@ Only failures surface in Claude's context. The exit code is preserved so Claude 
 `token-lens setup` also registers a `statusLine` script in `~/.claude/settings.json`. After every Claude reply, the status bar updates with live session totals:
 
 ```
-lens  12 prompts · 8.4k tok · saved 1.2k (14%)
+lens  8.4k↑ 2.1k↓ · ctx 15% · usage 20% · Resets in 3hr 23min · $0.0535 · saved 1.2k (14%)
 ```
 
-When nothing has been saved yet (short prompts, no stack traces), the saved part is omitted:
+- `↑` input tokens, `↓` output tokens (cumulative for the session)
+- `ctx %` — context window fill level (200k); turns yellow at 50%, turns red at 80% with a `/compact or /clear` prompt
+- `usage %` — 5-hour rate limit consumption, same metric as the official Claude Code "Current Session" bar
+- `Resets in` — time until the rate limit window resets
+- `$` — session cost in USD
+- `saved` — only shown when compression has fired
+
+When nothing has been saved yet, the saved part is omitted:
 
 ```
-lens  3 prompts · 0.9k tok
+lens  8.4k↑ 2.1k↓ · ctx 15% · usage 20% · Resets in 3hr 23min · $0.0535
 ```
 
 The counter resets with each new Claude Code session.
