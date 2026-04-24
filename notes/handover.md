@@ -54,6 +54,34 @@
 
 ---
 
+## 会话 1 后续补充｜2026-04-24
+
+### 新增内容
+
+- `notes/` 文件夹建立（design / context / roadmap / handover）
+- 英文 README 顶部加语言切换链接
+- 新增中文 README（`README_CN.md`），中文版对文档处理场景有更详细展开
+- 两份 README 均新增**兼容性说明表格**：
+  - Hook 功能依赖本地 shell，CLI / Desktop App / IDE 插件均支持
+  - Web 版（claude.ai/code）无法执行本地命令，hooks 不生效
+  - 文档 CLI 命令独立于 Claude Code，任何终端可用
+- Desktop App / IDE 插件的 hook 兼容性**尚未真实用户验证**，属于待确认项
+
+### 朋友圈文案背景
+
+用户 3 月 20 日曾因上下文被无声截断给 Anthropic 发过投诉邮件，未得到解决，遂自己动手写工具。这是项目起源，可作为对外传播的故事核心。文案方向：「从投诉到自救，用了 35 天」。
+
+### 当前状态
+
+- 代码已推送 GitHub：https://github.com/Yaminie-Hsu/claude-token-lens
+- 32 个测试全部通过
+- Hooks 已安装到用户本地 `~/.claude/settings.json`
+- 用户主要使用 CLI 模式，hooks 完全生效
+- 尚未发布到 PyPI
+- 用户正在本地自行测试中
+
+---
+
 ## 如何在新会话中恢复上下文
 
 1. 告知 Claude：`项目在 /Users/viojasminie/claude-token-lens`
