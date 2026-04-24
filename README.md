@@ -36,6 +36,7 @@ Claude Code already provides `/compact`, `/clear`, auto-compaction, and prompt c
   - Test runners (`pytest`, `npm test`, `go test`, …) → failures only
   - Log/file reads → last N lines
 - **Session statistics** — `token-lens stats` shows cumulative savings (last 30 days); `token-lens stats session` shows the current session
+- **Monthly cost tracking** — `token-lens stats month` shows the total API-equivalent cost for the current calendar month across all sessions, compared against the Claude Pro plan ($20/mo), so you can see whether Pro is paying off
 - **Real-time status line** — embeds a live counter in Claude Code's status bar: `lens  8.4k↑ 2.1k↓ · ctx 15% · usage 20% · Resets in 3hr 23min · $0.0535 · saved 1.2k (14%)`
 - **Context window indicator** — status line turns yellow at 50% and red at 80% with a `/compact or /clear` prompt
 - **Zero config to start** — `token-lens setup` writes the hooks into `~/.claude/settings.json`
@@ -136,7 +137,7 @@ lens  8.4k↑ 2.1k↓ · ctx 15% · usage 20% · Resets in 3hr 23min · $0.0535 
 - `ctx %` — context window fill level (200k); turns yellow at 50%, turns red at 80% with a `/compact or /clear` prompt
 - `usage %` — 5-hour rate limit consumption, same metric as the official Claude Code "Current Session" bar
 - `Resets in` — time until the rate limit window resets
-- `$` — session cost in USD
+- `$` — session cost in USD (persisted to a local DB on every refresh for monthly tracking)
 - `saved` — only shown when compression has fired
 
 When nothing has been saved yet, the saved part is omitted:
@@ -145,7 +146,28 @@ When nothing has been saved yet, the saved part is omitted:
 lens  8.4k↑ 2.1k↓ · ctx 15% · usage 20% · Resets in 3hr 23min · $0.0535
 ```
 
-The counter resets with each new Claude Code session.
+The counter resets with each new Claude Code session. The cost is automatically accumulated across sessions in a local SQLite database — no extra steps needed.
+
+### Monthly cost report
+
+```
+token-lens stats month
+```
+
+```
+── token-lens  monthly cost (April 2026) ─────────────────
+  Sessions recorded  : 23
+  API-equivalent cost: $24.3100
+  Claude Pro plan    : $20.00/month
+  ─────────────────────────────────────────────────────
+  Net value          : +$4.31  (Pro 划算，等效省了这么多)
+```
+
+The "API-equivalent cost" is what you would have paid on a pay-as-you-go API plan. Comparing it to the $20 Pro monthly fee tells you whether your subscription is pulling its weight. You can also pass a specific month:
+
+```bash
+token-lens stats month 2026-03
+```
 
 ---
 
@@ -158,6 +180,10 @@ token-lens stats 7
 
 # Show stats for the current session only
 token-lens stats session
+
+# Show monthly API-equivalent cost vs Claude Pro plan
+token-lens stats month
+token-lens stats month 2026-03
 
 # Compress text from stdin, print result to stdout
 echo "my prompt" | token-lens compress
