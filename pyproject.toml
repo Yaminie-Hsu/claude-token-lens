@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "claude-token-lens"
+version = "0.1.0"
+description = "Token monitoring and compression hooks for Claude Code — coding-session optimized"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+keywords = ["claude", "claude-code", "token", "llm", "optimization", "hooks"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+]
+
+dependencies = [
+    "tiktoken>=0.7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "pytest-cov"]
+
+[project.scripts]
+token-lens = "cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["claude_token_lens*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
